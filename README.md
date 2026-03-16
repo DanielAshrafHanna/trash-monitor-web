@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trash Monitor Web
 
-## Getting Started
+MVP monitoring dashboard for RF-triggered trash-bin alerts.
 
-First, run the development server:
+## What it does
+
+- Shows a dashboard of trash bins with status, location, area, and last collection time
+- Accepts webhook alerts from ESP32 devices at `POST /api/bin-event`
+- Exposes a bins API at `GET /api/bins`
+- Lets operators mark a bin as collected at `POST /api/bins/:binId/collect`
+- Supports Supabase for hosted persistence, with an in-memory fallback for local UI work
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If no Supabase environment variables are set, the app uses demo data from the in-memory store.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Webhook payload
 
-## Learn More
+```json
+{
+  "deviceId": "esp32-bin-02",
+  "status": "full",
+  "fullnessPercent": 76
+}
+```
 
-To learn more about Next.js, take a look at the following resources:
+If `WEBHOOK_SECRET` is set, include it in the `x-webhook-secret` header.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a Supabase project.
+2. Open the SQL editor and run `supabase/schema.sql`.
+3. Copy `.env.example` to `.env.local`.
+4. Fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `WEBHOOK_SECRET`
+5. Run the app again.
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Recommended hosting:
+- Frontend/API: Vercel
+- Database: Supabase
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set these environment variables in Vercel:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `WEBHOOK_SECRET`
+
+## Notes
+
+- The current dashboard is ready for one ESP32 per trash can
+- The ESP32 firmware can continue publishing MQTT for Home Assistant later while also sending webhook alerts to this app
+- The next step after this repo is updating the ESP32 firmware to send the webhook on a known RF match
