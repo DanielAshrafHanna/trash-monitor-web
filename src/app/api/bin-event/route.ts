@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { ingestWebhook } from "@/lib/store";
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+
+  revalidatePath("/");
 
   return NextResponse.json({
     success: true,

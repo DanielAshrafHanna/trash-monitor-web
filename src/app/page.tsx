@@ -1,5 +1,8 @@
 import { listBins, listEvents } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(value: string | null) {
   if (!value) {
     return "No data yet";
