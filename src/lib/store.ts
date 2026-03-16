@@ -170,9 +170,9 @@ export async function ingestWebhook(
 
   const row = existing as BinRow;
   const triggeredAt = payload.triggeredAt ?? new Date().toISOString();
-  const fullnessPercent = Math.max(
-    row.threshold_percent,
-    payload.fullnessPercent ?? row.threshold_percent,
+  const fullnessPercent = Math.min(
+    Math.max(payload.fullnessPercent ?? row.threshold_percent, 0),
+    100,
   );
 
   const { data: updated, error: updateError } = await supabase

@@ -147,7 +147,7 @@ export default async function Home() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-semibold text-[#213126]">Fill level</span>
                     <span className="text-[#516257]">
-                      {bin.fullnessPercent}% / {bin.thresholdPercent}% threshold
+                      {bin.fullnessPercent}% / 100%
                     </span>
                   </div>
                   <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#d8dece]">
@@ -156,6 +156,9 @@ export default async function Home() {
                       style={{ width: `${Math.min(bin.fullnessPercent, 100)}%` }}
                     />
                   </div>
+                  <p className="mt-2 text-xs text-[#6f7d74]">
+                    Alert threshold: {bin.thresholdPercent}%
+                  </p>
                 </div>
               </article>
             ))}

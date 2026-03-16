@@ -140,9 +140,9 @@ export async function ingestMemoryWebhook(
   }
 
   const triggeredAt = payload.triggeredAt ?? new Date().toISOString();
-  const fullnessPercent = Math.max(
-    bin.thresholdPercent,
-    payload.fullnessPercent ?? bin.thresholdPercent,
+  const fullnessPercent = Math.min(
+    Math.max(payload.fullnessPercent ?? bin.thresholdPercent, 0),
+    100,
   );
 
   bin.status = "full";
