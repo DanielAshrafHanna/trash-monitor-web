@@ -43,6 +43,7 @@ export default async function Home() {
   const [bins, events] = await Promise.all([listBins(), listEvents()]);
   const fullCount = bins.filter((bin) => bin.status === "full").length;
   const collectingCount = bins.filter((bin) => bin.status === "collecting").length;
+  const binNameById = new Map(bins.map((bin) => [bin.id, bin.name]));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,236,219,0.95),_transparent_38%),linear-gradient(160deg,_#f7f1e8_0%,_#ebe1d2_42%,_#dce8df_100%)] px-5 py-8 text-[#17251c] sm:px-8 lg:px-12">
@@ -55,11 +56,11 @@ export default async function Home() {
                 Waste Monitoring Control Room
               </p>
               <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
-                Track full trash bins the moment each ESP32 receives its RF alert.
+                Track which trash bins need collection in real time.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-[#d8e6db] sm:text-base">
-                This dashboard is ready for your webhook flow: one trash can, one RF
-                transmitter, one ESP32 bridge, one alert into the operations view.
+                Monitor every connected trash bin, see its current condition, and
+                follow recent activity as collection updates come in.
               </p>
             </div>
 
@@ -157,44 +158,17 @@ export default async function Home() {
 
                 <div className="mt-6">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-[#213126]">Reported state</span>
+                    <span className="font-semibold text-[#213126]">Current status</span>
                     <span className="text-[#516257]">
                       {statusLabel(bin.status)}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-[#6f7d74]">
-                    Incoming webhook values can now send <code>FULL</code> or <code>NORMAL</code>.
-                  </p>
                 </div>
               </article>
             ))}
           </div>
 
           <aside className="grid gap-6">
-            <section className="rounded-[28px] border border-white/70 bg-[rgba(255,251,246,0.86)] p-6 shadow-[0_18px_60px_rgba(49,58,46,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#66755d]">
-                Webhook Endpoint
-              </p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-                Ready for ESP32 alerts
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-[#516257]">
-                Your firmware can POST to <code>/api/bin-event</code> whenever the
-                learned RF code is detected.
-              </p>
-              <pre className="mt-4 overflow-x-auto rounded-[22px] bg-[#1a2a20] p-4 text-xs leading-6 text-[#dcefe1]">
-{`{
-  "deviceId": "esp32-bin-02",
-  "status": "full",
-  "fullnessPercent": "FULL"
-}`}
-              </pre>
-              <p className="mt-4 text-xs leading-6 text-[#6a786f]">
-                Add the optional <code>x-webhook-secret</code> header later by setting
-                <code> WEBHOOK_SECRET </code> in the deployed app.
-              </p>
-            </section>
-
             <section className="rounded-[28px] border border-white/70 bg-[rgba(255,251,246,0.86)] p-6 shadow-[0_18px_60px_rgba(49,58,46,0.08)]">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#66755d]">
                 Recent Events
@@ -208,10 +182,14 @@ export default async function Home() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-[#17251c]">
-                          {event.binId}
+                          {binNameById.get(event.binId) ?? event.binId}
                         </p>
                         <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#7b6b57]">
-                          {event.type.replace("_", " ")}
+                          {event.type === "bin_full"
+                            ? "Full"
+                            : event.type === "status_reset"
+                              ? "Normal"
+                              : "Collected"}
                         </p>
                       </div>
                       <span className="text-xs text-[#6c7a70]">
@@ -219,7 +197,11 @@ export default async function Home() {
                       </span>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#4e5d53]">
-                      {event.message}
+                      {event.type === "bin_full"
+                        ? "Bin marked as full."
+                        : event.type === "status_reset"
+                          ? "Bin returned to normal."
+                          : "Bin marked as collected."}
                     </p>
                   </article>
                 ))}
