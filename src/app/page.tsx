@@ -1,4 +1,5 @@
 import { listBins, listEvents } from "@/lib/store";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -33,6 +34,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,236,219,0.95),_transparent_38%),linear-gradient(160deg,_#f7f1e8_0%,_#ebe1d2_42%,_#dce8df_100%)] px-5 py-8 text-[#17251c] sm:px-8 lg:px-12">
+      <AutoRefresh intervalMs={5000} />
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <div className="overflow-hidden rounded-[32px] border border-white/50 bg-[linear-gradient(135deg,_rgba(22,37,28,0.9),_rgba(27,58,43,0.78))] px-6 py-8 text-white shadow-[0_24px_80px_rgba(21,38,28,0.22)] sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
