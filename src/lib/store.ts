@@ -1,5 +1,7 @@
 import type { Bin, BinEvent, BinWebhookPayload } from "@/lib/types";
+import type { NewBinInput } from "@/lib/types";
 import {
+  createMemoryBin,
   ingestMemoryWebhook,
   listMemoryBins,
   listMemoryEvents,
@@ -59,6 +61,10 @@ function mapEventRow(row: EventRow): BinEvent {
   };
 }
 
+function normalizeStatus(status: Bin["status"]): "normal" | "full" {
+  return status === "full" ? "full" : "normal";
+}
+
 function getReportedState(payload: BinWebhookPayload): Bin["status"] {
   if (payload.fullnessPercent === "NORMAL" || payload.status === "normal") {
     return "normal";
@@ -106,6 +112,35 @@ export async function listEvents(limit = 8): Promise<BinEvent[]> {
   }
 
   return (data as EventRow[]).map(mapEventRow);
+}
+
+export async function createBin(input: NewBinInput): Promise<Bin> {
+  if (!hasSupabaseConfig()) {
+    return createMemoryBin(input);
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("bins")
+    .insert({
+      id: input.id,
+      device_id: input.deviceId,
+      name: input.name,
+      location: input.location,
+      area: input.area,
+      status: "normal",
+      fullness_percent: 0,
+      threshold_percent: 70,
+      notes: input.notes || null,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create bin: ${error.message}`);
+  }
+
+  return mapBinRow(data as BinRow);
 }
 
 export async function markBinCollected(binId: string): Promise<Bin | null> {
@@ -193,7 +228,7 @@ export async function ingestWebhook(
   const { data: updated, error: updateError } = await supabase
     .from("bins")
     .update({
-      status: reportedState,
+      status: normalizeStatus(reportedState),
       fullness_percent: fullnessPercent,
       last_signal_at: triggeredAt,
     })

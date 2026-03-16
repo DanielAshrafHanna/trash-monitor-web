@@ -1,5 +1,6 @@
 import { listBins, listEvents } from "@/lib/store";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { AddBinForm } from "@/components/add-bin-form";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,10 +21,6 @@ function statusTone(status: string) {
     return "bg-[rgba(255,111,76,0.18)] text-[#7a1d0b] ring-1 ring-[rgba(201,73,39,0.22)]";
   }
 
-  if (status === "collecting") {
-    return "bg-[rgba(255,193,59,0.18)] text-[#6d4a00] ring-1 ring-[rgba(201,145,11,0.2)]";
-  }
-
   return "bg-[rgba(57,178,115,0.16)] text-[#114c2f] ring-1 ring-[rgba(30,119,73,0.18)]";
 }
 
@@ -32,17 +29,13 @@ function statusLabel(status: string) {
     return "FULL";
   }
 
-  if (status === "collecting") {
-    return "COLLECTING";
-  }
-
   return "NORMAL";
 }
 
 export default async function Home() {
   const [bins, events] = await Promise.all([listBins(), listEvents()]);
   const fullCount = bins.filter((bin) => bin.status === "full").length;
-  const collectingCount = bins.filter((bin) => bin.status === "collecting").length;
+  const normalCount = bins.length - fullCount;
   const binNameById = new Map(bins.map((bin) => [bin.id, bin.name]));
 
   return (
@@ -78,10 +71,10 @@ export default async function Home() {
                 <p className="mt-3 text-3xl font-semibold">{fullCount}</p>
               </div>
               <div className="rounded-[24px] bg-[rgba(255,193,59,0.18)] px-5 py-4 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.25em] text-[#ffe7a9]">
-                  Collecting
+                <p className="text-xs uppercase tracking-[0.25em] text-[#fff3c7]">
+                  Normal
                 </p>
-                <p className="mt-3 text-3xl font-semibold">{collectingCount}</p>
+                <p className="mt-3 text-3xl font-semibold">{normalCount}</p>
               </div>
             </div>
           </div>
@@ -169,6 +162,7 @@ export default async function Home() {
           </div>
 
           <aside className="grid gap-6">
+            <AddBinForm />
             <section className="rounded-[28px] border border-white/70 bg-[rgba(255,251,246,0.86)] p-6 shadow-[0_18px_60px_rgba(49,58,46,0.08)]">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#66755d]">
                 Recent Events

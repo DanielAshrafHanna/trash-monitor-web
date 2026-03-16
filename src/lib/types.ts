@@ -33,3 +33,12 @@ export type BinWebhookPayload = {
   fullnessPercent?: number | "FULL" | "NORMAL";
   triggeredAt?: string;
 };
+
+export type NewBinInput = {
+  id: string;
+  deviceId: string;
+  name: string;
+  location: string;
+  area: string;
+  notes?: string;
+};

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 
-import type { Bin, BinEvent, BinWebhookPayload } from "@/lib/types";
+import type { Bin, BinEvent, BinWebhookPayload, NewBinInput } from "@/lib/types";
 
 type StoreShape = {
   bins: Bin[];
@@ -40,8 +40,8 @@ const seedBins: Bin[] = [
     name: "Campus North",
     location: "Engineering building exit",
     area: "University Zone",
-    status: "collecting",
-    fullnessPercent: 71,
+    status: "normal",
+    fullnessPercent: 0,
     thresholdPercent: 70,
     lastSignalAt: "2026-03-16T11:42:00.000Z",
     lastCollectionTime: "2026-03-16T11:55:00.000Z",
@@ -171,4 +171,32 @@ export async function ingestMemoryWebhook(
   });
 
   return { ...bin };
+}
+
+export async function createMemoryBin(input: NewBinInput): Promise<Bin> {
+  const store = getStore();
+  const existing = store.bins.find(
+    (bin) => bin.id === input.id || bin.deviceId === input.deviceId,
+  );
+
+  if (existing) {
+    throw new Error("A bin with this ID or device ID already exists.");
+  }
+
+  const newBin: Bin = {
+    id: input.id,
+    deviceId: input.deviceId,
+    name: input.name,
+    location: input.location,
+    area: input.area,
+    status: "normal",
+    fullnessPercent: 0,
+    thresholdPercent: 70,
+    lastSignalAt: null,
+    lastCollectionTime: null,
+    notes: input.notes || undefined,
+  };
+
+  store.bins.push(newBin);
+  return { ...newBin };
 }
