@@ -27,6 +27,18 @@ function statusTone(status: string) {
   return "bg-[rgba(57,178,115,0.16)] text-[#114c2f] ring-1 ring-[rgba(30,119,73,0.18)]";
 }
 
+function statusLabel(status: string) {
+  if (status === "full") {
+    return "FULL";
+  }
+
+  if (status === "collecting") {
+    return "COLLECTING";
+  }
+
+  return "NORMAL";
+}
+
 export default async function Home() {
   const [bins, events] = await Promise.all([listBins(), listEvents()]);
   const fullCount = bins.filter((bin) => bin.status === "full").length;
@@ -145,19 +157,13 @@ export default async function Home() {
 
                 <div className="mt-6">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-[#213126]">Fill level</span>
+                    <span className="font-semibold text-[#213126]">Reported state</span>
                     <span className="text-[#516257]">
-                      {bin.fullnessPercent}% / 100%
+                      {statusLabel(bin.status)}
                     </span>
                   </div>
-                  <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#d8dece]">
-                    <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,_#2d7f59,_#f2a63b,_#dd5635)]"
-                      style={{ width: `${Math.min(bin.fullnessPercent, 100)}%` }}
-                    />
-                  </div>
                   <p className="mt-2 text-xs text-[#6f7d74]">
-                    Alert threshold: {bin.thresholdPercent}%
+                    Incoming webhook values can now send <code>FULL</code> or <code>NORMAL</code>.
                   </p>
                 </div>
               </article>
@@ -180,7 +186,7 @@ export default async function Home() {
 {`{
   "deviceId": "esp32-bin-02",
   "status": "full",
-  "fullnessPercent": 76
+  "fullnessPercent": "FULL"
 }`}
               </pre>
               <p className="mt-4 text-xs leading-6 text-[#6a786f]">

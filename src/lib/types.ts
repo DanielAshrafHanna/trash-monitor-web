@@ -29,7 +29,7 @@ export type BinEvent = {
 export type BinWebhookPayload = {
   deviceId: string;
   binId?: string;
-  status?: "full";
-  fullnessPercent?: number;
+  status?: "full" | "normal";
+  fullnessPercent?: number | "FULL" | "NORMAL";
   triggeredAt?: string;
 };

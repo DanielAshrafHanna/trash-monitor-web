@@ -140,12 +140,20 @@ export async function ingestMemoryWebhook(
   }
 
   const triggeredAt = payload.triggeredAt ?? new Date().toISOString();
-  const fullnessPercent = Math.min(
-    Math.max(payload.fullnessPercent ?? bin.thresholdPercent, 0),
-    100,
-  );
+  const reportedState =
+    payload.fullnessPercent === "NORMAL" || payload.status === "normal"
+      ? "normal"
+      : payload.fullnessPercent === "FULL" || payload.status === "full"
+        ? "full"
+        : "full";
+  const fullnessPercent =
+    typeof payload.fullnessPercent === "number"
+      ? Math.min(Math.max(payload.fullnessPercent, 0), 100)
+      : reportedState === "full"
+        ? 100
+        : 0;
 
-  bin.status = "full";
+  bin.status = reportedState;
   bin.fullnessPercent = fullnessPercent;
   bin.lastSignalAt = triggeredAt;
 
@@ -153,10 +161,13 @@ export async function ingestMemoryWebhook(
     id: randomUUID(),
     binId: bin.id,
     deviceId: bin.deviceId,
-    type: "bin_full",
+    type: reportedState === "full" ? "bin_full" : "status_reset",
     createdAt: triggeredAt,
     source: "rf-webhook",
-    message: "Webhook received from the RF bridge for a full bin alert.",
+    message:
+      reportedState === "full"
+        ? "Webhook received from the RF bridge for a full bin alert."
+        : "Webhook received from the RF bridge marking the bin as normal.",
   });
 
   return { ...bin };

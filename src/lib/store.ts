@@ -59,6 +59,18 @@ function mapEventRow(row: EventRow): BinEvent {
   };
 }
 
+function getReportedState(payload: BinWebhookPayload): Bin["status"] {
+  if (payload.fullnessPercent === "NORMAL" || payload.status === "normal") {
+    return "normal";
+  }
+
+  if (payload.fullnessPercent === "FULL" || payload.status === "full") {
+    return "full";
+  }
+
+  return "full";
+}
+
 export async function listBins(): Promise<Bin[]> {
   if (!hasSupabaseConfig()) {
     return listMemoryBins();
@@ -170,15 +182,18 @@ export async function ingestWebhook(
 
   const row = existing as BinRow;
   const triggeredAt = payload.triggeredAt ?? new Date().toISOString();
-  const fullnessPercent = Math.min(
-    Math.max(payload.fullnessPercent ?? row.threshold_percent, 0),
-    100,
-  );
+  const reportedState = getReportedState(payload);
+  const fullnessPercent =
+    typeof payload.fullnessPercent === "number"
+      ? Math.min(Math.max(payload.fullnessPercent, 0), 100)
+      : reportedState === "full"
+        ? 100
+        : 0;
 
   const { data: updated, error: updateError } = await supabase
     .from("bins")
     .update({
-      status: "full",
+      status: reportedState,
       fullness_percent: fullnessPercent,
       last_signal_at: triggeredAt,
     })
@@ -193,10 +208,13 @@ export async function ingestWebhook(
   const { error: eventError } = await supabase.from("bin_events").insert({
     bin_id: row.id,
     device_id: row.device_id,
-    type: "bin_full",
+    type: reportedState === "full" ? "bin_full" : "status_reset",
     created_at: triggeredAt,
     source: "rf-webhook",
-    message: "Webhook received from the RF bridge for a full bin alert.",
+    message:
+      reportedState === "full"
+        ? "Webhook received from the RF bridge for a full bin alert."
+        : "Webhook received from the RF bridge marking the bin as normal.",
   });
 
   if (eventError) {
