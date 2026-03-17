@@ -22,6 +22,7 @@ Current production deployment:
 - Accepts webhook updates from ESP32 devices
 - Logs recent events for operators
 - Lets operators add new bins directly from the dashboard
+- Lets operators edit and delete bins directly from the dashboard
 - Uses Supabase for hosted persistence
 - Falls back to in-memory demo data locally if Supabase is not configured
 
@@ -259,6 +260,47 @@ x-webhook-secret: YOUR_SECRET
 
 If `WEBHOOK_SECRET` is not set, the webhook endpoint accepts requests without authentication. This was useful during testing, but production deployments should use a secret.
 
+### Recommended production security setup
+
+For a real deployment, use the webhook secret.
+
+The expected setup is:
+
+1. Set `WEBHOOK_SECRET` in Vercel for the production web app
+2. Redeploy the web app
+3. Open each device's admin page
+4. Set the same value in that device's `Webhook Secret` field
+5. Save the device settings
+6. Test with one manual webhook and one real device event
+
+Important rule:
+
+- the secret in Vercel and the secret saved on each device must match exactly
+
+If they do not match, the web app returns:
+
+```json
+{"error":"Unauthorized"}
+```
+
+### Step-by-step: re-enable `WEBHOOK_SECRET`
+
+If the project is currently running without webhook authentication and you want to turn it back on:
+
+1. Open the project in Vercel
+2. Go to `Settings`
+3. Open `Environment Variables`
+4. Add or update:
+   - `WEBHOOK_SECRET`
+5. Redeploy production
+6. Open each device admin page
+7. Enter the same secret in `Webhook Secret`
+8. Save and restart the device if needed
+9. Test a `FULL` webhook
+10. Confirm the dashboard updates normally
+
+Do not enable the secret in Vercel unless the devices are also updated, otherwise live updates will stop.
+
 ## ESP32 integration
 
 This app is meant to work with the updated ESP32 firmware.
@@ -277,6 +319,15 @@ For each ESP:
 
 Once those values match, the ESP can update the dashboard with no further backend work.
 
+### What happens when webhook auth is enabled
+
+When webhook authentication is enabled:
+
+- the web app expects the request header `x-webhook-secret`
+- the device firmware can send that header automatically if `Webhook Secret` is configured on the device
+- the dashboard behavior does not change for operators
+- only the device configuration changes
+
 ### ESP setup summary for a new bin
 
 For a newly added dashboard bin:
@@ -292,6 +343,20 @@ For a newly added dashboard bin:
 - `FULL` bins are highlighted for attention
 - `NORMAL` bins remain visible as healthy/cleared units
 - Recent events show the bin name and user-facing state changes
+- Bins can be added, edited, and deleted from the dashboard
+
+### Current operator actions
+
+Available from the dashboard:
+
+- add a new bin
+- edit a bin's name, location, area, and notes
+- delete a bin
+
+Current limitation:
+
+- the `Last Collection` field is not updated automatically by `FULL` and `NORMAL` webhooks
+- it only changes if the legacy collection API is called or if existing data already contains a collection timestamp
 
 ## Local development
 
@@ -355,6 +420,7 @@ After deployment, verify:
 1. The dashboard loads
 2. A test webhook updates a known bin
 3. The page reflects the change automatically
+4. If `WEBHOOK_SECRET` is enabled, an unsigned request is rejected and a signed request succeeds
 
 ## Example test commands
 
@@ -376,6 +442,11 @@ If webhook auth is enabled:
 curl.exe -X POST "https://trash-monitor-web.vercel.app/api/bin-event" -H "Content-Type: application/json" -H "x-webhook-secret: YOUR_WEBHOOK_SECRET" -d "{\"deviceId\":\"esp32-bin-02\",\"fullnessPercent\":\"FULL\"}"
 ```
 
+Expected results:
+
+- correct secret -> success response and dashboard update
+- missing or wrong secret -> `{"error":"Unauthorized"}`
+
 ## Main project files
 
 - Dashboard page: [src/app/page.tsx](C:\Users\danie\Desktop\RF module\trash-monitor-web\src\app\page.tsx)
@@ -390,6 +461,8 @@ curl.exe -X POST "https://trash-monitor-web.vercel.app/api/bin-event" -H "Conten
 - There is still a legacy internal `collect` API route in the codebase, but the current operator workflow and UI are built around `FULL` and `NORMAL`
 - MQTT is intentionally not handled by this web app; MQTT remains in the ESP/Home Assistant side of the system
 - Each ESP should be dedicated to one trash bin in the current architecture
+- The dashboard now uses customer-friendly wording, but the webhook/API layer still uses technical fields like `deviceId` for integration
+- Device IDs are normalized to lowercase hyphenated values, so `Dany Test` becomes `dany-test`
 
 ## Recommended operational workflow
 
@@ -399,5 +472,20 @@ curl.exe -X POST "https://trash-monitor-web.vercel.app/api/bin-event" -H "Conten
 4. Record the `NORMAL` RF signal
 5. Test both states against production
 6. Mount the unit in the field
+
+## Fast checklist for a new deployment
+
+1. Deploy the web app to Vercel
+2. Configure Supabase
+3. Add `WEBHOOK_SECRET` in Vercel if this is a secured deployment
+4. Add the first bin from the dashboard
+5. Copy the saved `Device ID`
+6. Configure one device with:
+   - `Webhook URL`
+   - `Webhook Device ID`
+   - `Webhook Secret` if enabled
+7. Record the `FULL` and `NORMAL` RF signals on that device
+8. Test both states
+9. Repeat for the remaining bins
 
 This README should be enough for another developer or operator to understand how the web app fits into the full trash-monitoring system and how to extend it safely.
