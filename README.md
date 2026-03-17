@@ -37,8 +37,6 @@ Current production deployment:
 
 Each bin record contains:
 
-- `id`
-  - Internal bin ID, for example `bin-07`
 - `deviceId`
   - ESP32 identity, for example `esp32-bin-07`
 - `name`
@@ -56,7 +54,9 @@ Each bin record contains:
 - `notes`
   - Optional operator notes
 
-The most important field for ESP integration is `deviceId`.
+The key field for ESP integration is `deviceId`.
+
+The internal database `id` is generated from the saved `deviceId`, so operators do not need to manage a separate technical bin ID during setup.
 
 If an ESP sends:
 
@@ -75,7 +75,6 @@ Operators can register bins directly from the web UI using the `Add Bin` panel.
 
 Required fields:
 
-- `Bin ID`
 - `Device ID`
 - `Display name`
 - `Location`
@@ -89,8 +88,108 @@ After a bin is created, an ESP32 can update it immediately as long as the ESP's 
 
 Recommended naming pattern:
 
-- `Bin ID`: `bin-01`
 - `Device ID`: `esp32-bin-01`
+- `Display name`: `Library Entrance`
+
+### Device ID rules
+
+- `Device ID` is the only identifier the ESP needs to match
+- if a user enters spaces, the app saves the `Device ID` in a safe format by converting spaces to hyphens
+- `Display name`, `Location`, `Area`, and `Notes` keep normal readable spacing
+- example:
+  - typed `Device ID`: `ESP32 Bin 01`
+  - saved `Device ID`: `esp32-bin-01`
+  - typed `Display name`: `Main Gate Bin`
+  - saved `Display name`: `Main Gate Bin`
+
+### Step-by-step: create a new bin
+
+Example:
+
+1. Open the dashboard.
+2. In the `Add Bin` panel, enter:
+   - `Device ID`: `esp32-bin-03`
+   - `Display name`: `Library Entrance`
+   - `Location`: `Main Library front gate`
+   - `Area`: `North Campus`
+   - `Notes`: optional
+3. Click `Add Bin`.
+4. Confirm the new bin appears on the dashboard.
+
+At this point the web app is ready, but the ESP will not update that bin until its webhook settings are configured with the same identifiers.
+
+## How a new bin ties to the ESP
+
+Each ESP is assigned to exactly one trash bin in the current system.
+
+The key link between the dashboard and the ESP is the `Device ID`.
+
+If the dashboard bin is created with:
+
+- `Device ID`: `esp32-bin-03`
+
+then the ESP responsible for that physical bin should be configured with:
+
+- `Webhook URL`: `https://trash-monitor-web.vercel.app/api/bin-event`
+- `Webhook Device ID`: `esp32-bin-03`
+- `Webhook Secret`: only if webhook authentication is enabled in Vercel
+
+The `Webhook Device ID` should always match the dashboard `Device ID` exactly.
+
+### Important matching rule
+
+If the IDs do not match exactly, the webhook will not update the bin.
+
+Examples:
+
+- dashboard `Device ID` = `esp32-bin-03`
+- ESP `Webhook Device ID` = `esp32-bin-03`
+- result = works
+
+- dashboard `Device ID` = `esp32-bin-03`
+- ESP `Webhook Device ID` = `esp32_bin_03`
+- result = does not work
+
+- dashboard `Device ID` = `esp32-bin-03`
+- ESP `Webhook Device ID` = `esp32-bin-04`
+- result = updates the wrong bin or fails
+
+## Step-by-step: connect a newly created bin to an ESP
+
+1. Create the bin in the dashboard.
+2. Copy the exact `Device ID` you used.
+3. Open that ESP's admin page.
+4. In the webhook settings, set:
+   - `Webhook URL` to `https://trash-monitor-web.vercel.app/api/bin-event`
+   - `Webhook Device ID` to the same `Device ID` from the dashboard
+   - `Webhook Secret` if your deployment requires it
+5. Save the ESP settings.
+6. Open the ESP RF manager page.
+7. Record one RF signal as `FULL`.
+8. Record one RF signal as `NORMAL`.
+9. Trigger each RF transmitter once and confirm the dashboard changes.
+
+### What the ESP sends
+
+When the ESP receives the recorded `FULL` RF signal, it sends:
+
+```json
+{
+  "deviceId": "esp32-bin-03",
+  "fullnessPercent": "FULL"
+}
+```
+
+When the ESP receives the recorded `NORMAL` RF signal, it sends:
+
+```json
+{
+  "deviceId": "esp32-bin-03",
+  "fullnessPercent": "NORMAL"
+}
+```
+
+Because those IDs match the bin you created in the dashboard, the web app updates the correct card automatically.
 
 ## Webhook API
 
@@ -171,13 +270,21 @@ For each ESP:
 3. On the ESP admin page, set:
    - `Webhook URL` to `https://trash-monitor-web.vercel.app/api/bin-event`
    - `Webhook Device ID` to the exact `Device ID` from the dashboard
-   - `Webhook Bin ID` optionally to the exact `Bin ID`
    - `Webhook Secret` if webhook auth is enabled
 4. In the ESP RF manager:
    - record one RF signal as `FULL`
    - record one RF signal as `NORMAL`
 
 Once those values match, the ESP can update the dashboard with no further backend work.
+
+### ESP setup summary for a new bin
+
+For a newly added dashboard bin:
+
+1. Create the bin in the web app first.
+2. Use the same `Device ID` in the ESP admin page.
+3. Record the two RF states on that ESP.
+4. Test `FULL` and `NORMAL` before installing the unit in the field.
 
 ## Dashboard behavior
 

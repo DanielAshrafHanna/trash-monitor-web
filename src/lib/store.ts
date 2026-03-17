@@ -65,6 +65,14 @@ function normalizeStatus(status: Bin["status"]): "normal" | "full" {
   return status === "full" ? "full" : "normal";
 }
 
+function normalizeText(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function normalizeDeviceId(value: string) {
+  return normalizeText(value).toLowerCase().replace(/\s+/g, "-");
+}
+
 function getReportedState(payload: BinWebhookPayload): Bin["status"] {
   if (payload.fullnessPercent === "NORMAL" || payload.status === "normal") {
     return "normal";
@@ -115,23 +123,35 @@ export async function listEvents(limit = 8): Promise<BinEvent[]> {
 }
 
 export async function createBin(input: NewBinInput): Promise<Bin> {
+  const deviceId = normalizeDeviceId(input.deviceId);
+  const name = normalizeText(input.name);
+  const location = normalizeText(input.location);
+  const area = normalizeText(input.area);
+  const notes = input.notes ? normalizeText(input.notes) : null;
+
   if (!hasSupabaseConfig()) {
-    return createMemoryBin(input);
+    return createMemoryBin({
+      deviceId,
+      name,
+      location,
+      area,
+      notes: notes ?? undefined,
+    });
   }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .from("bins")
     .insert({
-      id: input.id,
-      device_id: input.deviceId,
-      name: input.name,
-      location: input.location,
-      area: input.area,
+      id: deviceId,
+      device_id: deviceId,
+      name,
+      location,
+      area,
       status: "normal",
       fullness_percent: 0,
       threshold_percent: 70,
-      notes: input.notes || null,
+      notes,
     })
     .select("*")
     .single();
@@ -191,8 +211,13 @@ export async function markBinCollected(binId: string): Promise<Bin | null> {
 export async function ingestWebhook(
   payload: BinWebhookPayload,
 ): Promise<Bin | null> {
+  const normalizedDeviceId = normalizeDeviceId(payload.deviceId);
+
   if (!hasSupabaseConfig()) {
-    return ingestMemoryWebhook(payload);
+    return ingestMemoryWebhook({
+      ...payload,
+      deviceId: normalizedDeviceId,
+    });
   }
 
   const supabase = getSupabaseAdminClient();
@@ -201,8 +226,8 @@ export async function ingestWebhook(
     .select("*")
     .or(
       payload.binId
-        ? `device_id.eq.${payload.deviceId},id.eq.${payload.binId}`
-        : `device_id.eq.${payload.deviceId}`,
+        ? `device_id.eq.${normalizedDeviceId},id.eq.${payload.binId}`
+        : `device_id.eq.${normalizedDeviceId}`,
     )
     .limit(1)
     .maybeSingle();

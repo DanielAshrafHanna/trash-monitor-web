@@ -16,22 +16,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  if (
-    !payload.id ||
-    !payload.deviceId ||
-    !payload.name ||
-    !payload.location ||
-    !payload.area
-  ) {
+  if (!payload.deviceId || !payload.name || !payload.location || !payload.area) {
     return NextResponse.json(
-      { error: "id, deviceId, name, location, and area are required" },
+      { error: "deviceId, name, location, and area are required" },
       { status: 400 },
     );
   }
 
   try {
     const bin = await createBin({
-      id: payload.id.trim(),
       deviceId: payload.deviceId.trim(),
       name: payload.name.trim(),
       location: payload.location.trim(),

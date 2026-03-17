@@ -4,13 +4,16 @@ import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const initialState = {
-  id: "",
   deviceId: "",
   name: "",
   location: "",
   area: "",
   notes: "",
 };
+
+function normalizeDeviceId(value: string) {
+  return value.trim().replace(/\s+/g, "-").toLowerCase();
+}
 
 export function AddBinForm() {
   const router = useRouter();
@@ -36,7 +39,6 @@ export function AddBinForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: form.id.trim(),
           deviceId: form.deviceId.trim(),
           name: form.name.trim(),
           location: form.location.trim(),
@@ -45,14 +47,17 @@ export function AddBinForm() {
         }),
       });
 
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as {
+        error?: string;
+        bin?: { deviceId: string };
+      };
 
       if (!response.ok) {
         throw new Error(data.error ?? "Failed to add bin");
       }
 
       setForm(initialState);
-      setMessage("Bin added successfully.");
+      setMessage(`Bin added successfully. Saved Device ID: ${data.bin?.deviceId ?? normalizeDeviceId(form.deviceId)}`);
       startTransition(() => {
         router.refresh();
       });
@@ -78,18 +83,18 @@ export function AddBinForm() {
       <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
         <input
           className="rounded-[18px] border border-[#d9d7cd] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2f7552]"
-          placeholder="Bin ID (e.g. bin-04)"
-          required
-          value={form.id}
-          onChange={(event) => updateField("id", event.target.value)}
-        />
-        <input
-          className="rounded-[18px] border border-[#d9d7cd] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2f7552]"
           placeholder="Device ID (e.g. esp32-bin-04)"
           required
           value={form.deviceId}
           onChange={(event) => updateField("deviceId", event.target.value)}
         />
+        <p className="-mt-1 px-1 text-xs text-[#66755d]">
+          This ID must match the ESP&apos;s Webhook Device ID. Spaces will be
+          converted to hyphens when the bin is saved.
+        </p>
+        <p className="-mt-3 px-1 text-xs font-semibold text-[#1e5f41]">
+          Saved as: {normalizeDeviceId(form.deviceId || "esp32-bin-01")}
+        </p>
         <input
           className="rounded-[18px] border border-[#d9d7cd] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2f7552]"
           placeholder="Display name"

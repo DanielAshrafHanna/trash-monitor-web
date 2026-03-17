@@ -35,7 +35,6 @@ export type BinWebhookPayload = {
 };
 
 export type NewBinInput = {
-  id: string;
   deviceId: string;
   name: string;
   location: string;

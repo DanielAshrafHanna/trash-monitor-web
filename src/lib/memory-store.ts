@@ -2,6 +2,14 @@ import { randomUUID } from "crypto";
 
 import type { Bin, BinEvent, BinWebhookPayload, NewBinInput } from "@/lib/types";
 
+function normalizeText(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function normalizeDeviceId(value: string) {
+  return normalizeText(value).toLowerCase().replace(/\s+/g, "-");
+}
+
 type StoreShape = {
   bins: Bin[];
   events: BinEvent[];
@@ -175,8 +183,9 @@ export async function ingestMemoryWebhook(
 
 export async function createMemoryBin(input: NewBinInput): Promise<Bin> {
   const store = getStore();
+  const deviceId = normalizeDeviceId(input.deviceId);
   const existing = store.bins.find(
-    (bin) => bin.id === input.id || bin.deviceId === input.deviceId,
+    (bin) => bin.id === deviceId || bin.deviceId === deviceId,
   );
 
   if (existing) {
@@ -184,17 +193,17 @@ export async function createMemoryBin(input: NewBinInput): Promise<Bin> {
   }
 
   const newBin: Bin = {
-    id: input.id,
-    deviceId: input.deviceId,
-    name: input.name,
-    location: input.location,
-    area: input.area,
+    id: deviceId,
+    deviceId,
+    name: normalizeText(input.name),
+    location: normalizeText(input.location),
+    area: normalizeText(input.area),
     status: "normal",
     fullnessPercent: 0,
     thresholdPercent: 70,
     lastSignalAt: null,
     lastCollectionTime: null,
-    notes: input.notes || undefined,
+    notes: input.notes ? normalizeText(input.notes) : undefined,
   };
 
   store.bins.push(newBin);
