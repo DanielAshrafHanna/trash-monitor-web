@@ -1,11 +1,12 @@
-import type { Bin, BinEvent, BinWebhookPayload } from "@/lib/types";
-import type { NewBinInput } from "@/lib/types";
+import type { Bin, BinEvent, BinWebhookPayload, NewBinInput, UpdateBinInput } from "@/lib/types";
 import {
   createMemoryBin,
+  deleteMemoryBin,
   ingestMemoryWebhook,
   listMemoryBins,
   listMemoryEvents,
   markMemoryBinCollected,
+  updateMemoryBin,
 } from "@/lib/memory-store";
 import { getSupabaseAdminClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -161,6 +162,63 @@ export async function createBin(input: NewBinInput): Promise<Bin> {
   }
 
   return mapBinRow(data as BinRow);
+}
+
+export async function updateBin(
+  binId: string,
+  input: UpdateBinInput,
+): Promise<Bin | null> {
+  const name = normalizeText(input.name);
+  const location = normalizeText(input.location);
+  const area = normalizeText(input.area);
+  const notes = input.notes ? normalizeText(input.notes) : null;
+
+  if (!hasSupabaseConfig()) {
+    return updateMemoryBin(binId, {
+      name,
+      location,
+      area,
+      notes: notes ?? undefined,
+    });
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("bins")
+    .update({
+      name,
+      location,
+      area,
+      notes,
+    })
+    .eq("id", binId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update bin: ${error.message}`);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapBinRow(data as BinRow);
+}
+
+export async function deleteBin(binId: string): Promise<boolean> {
+  if (!hasSupabaseConfig()) {
+    return deleteMemoryBin(binId);
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { error } = await supabase.from("bins").delete().eq("id", binId);
+
+  if (error) {
+    throw new Error(`Failed to delete bin: ${error.message}`);
+  }
+
+  return true;
 }
 
 export async function markBinCollected(binId: string): Promise<Bin | null> {

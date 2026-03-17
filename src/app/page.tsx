@@ -1,6 +1,7 @@
 import { listBins, listEvents } from "@/lib/store";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { AddBinForm } from "@/components/add-bin-form";
+import { BinCardActions } from "@/components/bin-card-actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -106,11 +107,9 @@ export default async function Home() {
 
                   <div className="grid gap-2 text-sm text-[#324239] sm:text-right">
                     <div>
-                      <span className="font-semibold text-[#17251c]">Bin ID:</span>{" "}
-                      {bin.id}
-                    </div>
-                    <div>
-                      <span className="font-semibold text-[#17251c]">Device ID:</span>{" "}
+                      <span className="font-semibold text-[#17251c]">
+                        Bin code:
+                      </span>{" "}
                       {bin.deviceId}
                     </div>
                   </div>
@@ -133,7 +132,7 @@ export default async function Home() {
                   </div>
                   <div className="rounded-[22px] bg-[#f7e7da] p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-[#8d5a38]">
-                      Last RF Alert
+                      Last Update
                     </p>
                     <p className="mt-2 text-sm font-medium text-[#342018]">
                       {formatDate(bin.lastSignalAt)}
@@ -157,6 +156,8 @@ export default async function Home() {
                     </span>
                   </div>
                 </div>
+
+                <BinCardActions bin={bin} />
               </article>
             ))}
           </div>

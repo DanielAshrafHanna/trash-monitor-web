@@ -41,3 +41,10 @@ export type NewBinInput = {
   area: string;
   notes?: string;
 };
+
+export type UpdateBinInput = {
+  name: string;
+  location: string;
+  area: string;
+  notes?: string;
+};

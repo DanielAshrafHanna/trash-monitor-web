@@ -57,7 +57,9 @@ export function AddBinForm() {
       }
 
       setForm(initialState);
-      setMessage(`Bin added successfully. Saved Device ID: ${data.bin?.deviceId ?? normalizeDeviceId(form.deviceId)}`);
+      setMessage(
+        `Bin added successfully. Saved bin code: ${data.bin?.deviceId ?? normalizeDeviceId(form.deviceId)}`,
+      );
       startTransition(() => {
         router.refresh();
       });
@@ -83,17 +85,17 @@ export function AddBinForm() {
       <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
         <input
           className="rounded-[18px] border border-[#d9d7cd] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2f7552]"
-          placeholder="Device ID (e.g. esp32-bin-04)"
+          placeholder="Bin code (e.g. downtown-bin-04)"
           required
           value={form.deviceId}
           onChange={(event) => updateField("deviceId", event.target.value)}
         />
         <p className="-mt-1 px-1 text-xs text-[#66755d]">
-          This ID must match the ESP&apos;s Webhook Device ID. Spaces will be
-          converted to hyphens when the bin is saved.
+          Use a short code for this bin. Spaces will be converted to hyphens
+          when the bin is saved.
         </p>
         <p className="-mt-3 px-1 text-xs font-semibold text-[#1e5f41]">
-          Saved as: {normalizeDeviceId(form.deviceId || "esp32-bin-01")}
+          Saved as: {normalizeDeviceId(form.deviceId || "downtown-bin-04")}
         </p>
         <input
           className="rounded-[18px] border border-[#d9d7cd] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2f7552]"

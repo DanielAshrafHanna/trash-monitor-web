@@ -1,6 +1,12 @@
 import { randomUUID } from "crypto";
 
-import type { Bin, BinEvent, BinWebhookPayload, NewBinInput } from "@/lib/types";
+import type {
+  Bin,
+  BinEvent,
+  BinWebhookPayload,
+  NewBinInput,
+  UpdateBinInput,
+} from "@/lib/types";
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -208,4 +214,36 @@ export async function createMemoryBin(input: NewBinInput): Promise<Bin> {
 
   store.bins.push(newBin);
   return { ...newBin };
+}
+
+export async function updateMemoryBin(
+  binId: string,
+  input: UpdateBinInput,
+): Promise<Bin | null> {
+  const store = getStore();
+  const bin = store.bins.find((entry) => entry.id === binId);
+
+  if (!bin) {
+    return null;
+  }
+
+  bin.name = normalizeText(input.name);
+  bin.location = normalizeText(input.location);
+  bin.area = normalizeText(input.area);
+  bin.notes = input.notes ? normalizeText(input.notes) : undefined;
+
+  return { ...bin };
+}
+
+export async function deleteMemoryBin(binId: string): Promise<boolean> {
+  const store = getStore();
+  const binIndex = store.bins.findIndex((entry) => entry.id === binId);
+
+  if (binIndex < 0) {
+    return false;
+  }
+
+  store.bins.splice(binIndex, 1);
+  store.events = store.events.filter((event) => event.binId !== binId);
+  return true;
 }

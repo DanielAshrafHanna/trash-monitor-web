@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Trash Monitor",
-  description: "RF-triggered waste bin monitoring dashboard",
+  description: "Waste bin monitoring dashboard",
 };
 
 export default function RootLayout({
