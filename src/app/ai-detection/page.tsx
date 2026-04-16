@@ -32,21 +32,21 @@ const cameraDetections: CameraDetection[] = [
     id: "cam-01",
     label: "Green Waste Bin",
     location: "Left side of camera frame",
-    status: "full",
-    fillLevel: 82,
+    status: "clear",
+    fillLevel: 22,
     confidence: 94,
     lastSeen: "18 seconds ago",
-    note: "Visible debris is close to the rim. Collection recommended before the next service window.",
+    note: "The bin is mostly empty. Keep it visible, but skip collection for this round.",
   },
   {
     id: "cam-02",
     label: "Metal Hopper Bin",
     location: "Center-right of camera frame",
-    status: "watch",
-    fillLevel: 63,
+    status: "clear",
+    fillLevel: 18,
     confidence: 91,
     lastSeen: "42 seconds ago",
-    note: "Partially filled and trending upward. Keep on the next route if capacity keeps rising.",
+    note: "Low fill level detected. No pickup needed unless the next frame changes.",
   },
   {
     id: "cam-03",
@@ -65,7 +65,7 @@ const events: EventRow[] = [
     time: "09:42",
     camera: "CAM-01",
     object: "Green waste bin",
-    result: "Full, pickup priority high",
+    result: "Clear, 22% full",
     confidence: "94%",
   },
   {
@@ -79,7 +79,7 @@ const events: EventRow[] = [
     time: "09:41",
     camera: "CAM-01",
     object: "Metal hopper bin",
-    result: "Watch list, rising fill level",
+    result: "Clear, 18% full",
     confidence: "91%",
   },
   {
@@ -92,9 +92,9 @@ const events: EventRow[] = [
 ];
 
 const routeStops = [
-  "Green Waste Bin",
-  "Metal Hopper Bin",
-  "Return only if cat alert changes",
+  "No immediate pickup for CAM-01",
+  "Recheck in the next scheduled scan",
+  "Dispatch only if fullness crosses 70%",
 ];
 
 function getStatusLabel(status: DetectionStatus) {
@@ -256,14 +256,9 @@ export default function AiDetectionPage() {
                 sizes="(min-width: 1280px) 560px, 100vw"
                 src="/trash-bin-camera-sample.jpg"
               />
-              <div className="absolute left-[3%] top-[38%] h-[36%] w-[43%] border-2 border-[#d33f49] bg-[#d33f49]/10">
-                <span className="absolute left-2 top-2 rounded-sm bg-[#d33f49] px-2 py-1 text-xs font-semibold text-white">
-                  Full bin 94%
-                </span>
-              </div>
-              <div className="absolute left-[38%] top-[27%] h-[33%] w-[45%] border-2 border-[#f0b429] bg-[#f0b429]/10">
-                <span className="absolute left-2 top-2 rounded-sm bg-[#f0b429] px-2 py-1 text-xs font-semibold text-[#111614]">
-                  Watch bin 91%
+              <div className="absolute left-[3%] top-[38%] h-[36%] w-[43%] border-2 border-[#1f8a5b] bg-[#1f8a5b]/10">
+                <span className="absolute left-2 top-2 rounded-sm bg-[#1f8a5b] px-2 py-1 text-xs font-semibold text-white">
+                  Clear bin 22%
                 </span>
               </div>
               <div className="absolute bottom-[9%] right-[5%] rounded-md border border-[#7b5cff] bg-[#101412]/90 px-3 py-2 text-white">
@@ -281,7 +276,7 @@ export default function AiDetectionPage() {
                 </div>
                 <div>
                   <p className="text-sm text-[#b8c7be]">Pickup priority</p>
-                  <p className="mt-1 text-2xl font-semibold text-[#ffced2]">High</p>
+                  <p className="mt-1 text-2xl font-semibold text-[#c7f2d9]">Low</p>
                 </div>
                 <div>
                   <p className="text-sm text-[#b8c7be]">Animal safety</p>
@@ -294,10 +289,10 @@ export default function AiDetectionPage() {
           <aside className="grid gap-4">
             <section className="rounded-lg border border-[#dde4de] bg-white p-5">
               <p className="text-sm font-semibold text-[#12613d]">Recommended action</p>
-              <h2 className="mt-3 text-2xl font-semibold">Collect CAM-01 first.</h2>
+              <h2 className="mt-3 text-2xl font-semibold">Skip CAM-01 for now.</h2>
               <p className="mt-3 leading-7 text-[#445048]">
-                Dispatch one cleaner to the kitchen service area within 35 minutes.
-                The current frame is clear of cats, so collection can proceed safely.
+                Both visible bins are below the pickup threshold. The current frame is
+                clear of cats, so the area can stay on passive monitoring.
               </p>
             </section>
 
