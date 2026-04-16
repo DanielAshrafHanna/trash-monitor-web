@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Camera-based trash bin detection demo with synthetic pitch data.",
 };
 
-type DetectionStatus = "full" | "clear" | "watch" | "cat";
+type DetectionStatus = "full" | "clear" | "watch" | "cat" | "animal-clear";
 
 type CameraDetection = {
   id: string;
@@ -30,43 +30,33 @@ type EventRow = {
 const cameraDetections: CameraDetection[] = [
   {
     id: "cam-01",
-    label: "Kitchen Service Bin",
-    location: "Back hallway camera",
+    label: "Green Waste Bin",
+    location: "Left side of camera frame",
     status: "full",
-    fillLevel: 86,
+    fillLevel: 82,
     confidence: 94,
     lastSeen: "18 seconds ago",
-    note: "Collection recommended before the next meal service window.",
+    note: "Visible debris is close to the rim. Collection recommended before the next service window.",
   },
   {
     id: "cam-02",
-    label: "Utility Room Bin",
-    location: "Maintenance entrance",
-    status: "clear",
-    fillLevel: 28,
+    label: "Metal Hopper Bin",
+    location: "Center-right of camera frame",
+    status: "watch",
+    fillLevel: 63,
     confidence: 91,
     lastSeen: "42 seconds ago",
-    note: "No action needed during the current collection round.",
+    note: "Partially filled and trending upward. Keep on the next route if capacity keeps rising.",
   },
   {
     id: "cam-03",
-    label: "Loading Bay Bin",
-    location: "South loading bay",
-    status: "watch",
-    fillLevel: 67,
-    confidence: 88,
+    label: "Cat Presence Check",
+    location: "Full camera frame",
+    status: "animal-clear",
+    fillLevel: 0,
+    confidence: 97,
     lastSeen: "1 minute ago",
-    note: "Trending upward; likely to cross the alert threshold within 2 hours.",
-  },
-  {
-    id: "cam-04",
-    label: "Storage Corridor",
-    location: "Camera 4 blind spot edge",
-    status: "cat",
-    fillLevel: 41,
-    confidence: 96,
-    lastSeen: "Now",
-    note: "Cat detected near the bins. Pause collection until the area is clear.",
+    note: "No cat detected in the current frame. Collection can proceed safely.",
   },
 ];
 
@@ -74,37 +64,37 @@ const events: EventRow[] = [
   {
     time: "09:42",
     camera: "CAM-01",
-    object: "Open trash bin",
+    object: "Green waste bin",
     result: "Full, pickup priority high",
     confidence: "94%",
   },
   {
     time: "09:42",
-    camera: "CAM-04",
+    camera: "CAM-01",
     object: "Cat",
-    result: "Animal safety alert",
-    confidence: "96%",
+    result: "No cat detected",
+    confidence: "97%",
   },
   {
     time: "09:41",
-    camera: "CAM-03",
-    object: "Trash bin",
+    camera: "CAM-01",
+    object: "Metal hopper bin",
     result: "Watch list, rising fill level",
-    confidence: "88%",
+    confidence: "91%",
   },
   {
     time: "09:40",
-    camera: "CAM-02",
-    object: "Trash bin",
-    result: "Clear",
-    confidence: "91%",
+    camera: "CAM-01",
+    object: "Wall control panel",
+    result: "Ignored, not a bin",
+    confidence: "89%",
   },
 ];
 
 const routeStops = [
-  "Kitchen Service Bin",
-  "Loading Bay Bin",
-  "Storage Corridor after cat clears",
+  "Green Waste Bin",
+  "Metal Hopper Bin",
+  "Return only if cat alert changes",
 ];
 
 function getStatusLabel(status: DetectionStatus) {
@@ -118,6 +108,10 @@ function getStatusLabel(status: DetectionStatus) {
 
   if (status === "cat") {
     return "Cat Detected";
+  }
+
+  if (status === "animal-clear") {
+    return "No Cat";
   }
 
   return "Watch";
@@ -136,6 +130,10 @@ function getStatusClasses(status: DetectionStatus) {
     return "border-[#7b5cff] bg-[#f7f5ff] text-[#4430a3]";
   }
 
+  if (status === "animal-clear") {
+    return "border-[#1f8a5b] bg-[#f0fbf5] text-[#12613d]";
+  }
+
   return "border-[#f0b429] bg-[#fffaf0] text-[#7a4d00]";
 }
 
@@ -152,15 +150,30 @@ function getBarColor(status: DetectionStatus) {
     return "bg-[#7b5cff]";
   }
 
+  if (status === "animal-clear") {
+    return "bg-[#1f8a5b]";
+  }
+
   return "bg-[#f0b429]";
+}
+
+function getMeasureLabel(status: DetectionStatus) {
+  if (status === "cat" || status === "animal-clear") {
+    return "Animal risk";
+  }
+
+  return "Fill estimate";
 }
 
 export default function AiDetectionPage() {
   const fullBins = cameraDetections.filter((item) => item.status === "full").length;
   const catAlerts = cameraDetections.filter((item) => item.status === "cat").length;
+  const binDetections = cameraDetections.filter(
+    (item) => item.status !== "cat" && item.status !== "animal-clear",
+  );
   const averageFill = Math.round(
-    cameraDetections.reduce((total, item) => total + item.fillLevel, 0) /
-      cameraDetections.length,
+    binDetections.reduce((total, item) => total + item.fillLevel, 0) /
+      binDetections.length,
   );
   const averageConfidence = Math.round(
     cameraDetections.reduce((total, item) => total + item.confidence, 0) /
@@ -178,7 +191,7 @@ export default function AiDetectionPage() {
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#dce7df]">
               Synthetic demo data for a camera-first waste monitoring pitch. The model
-              classifies bin fullness, flags cats near collection zones, and ranks the
+              classifies bin fullness, checks for cats near collection zones, and ranks the
               next pickup route.
             </p>
           </div>
@@ -234,28 +247,31 @@ export default function AiDetectionPage() {
                 Analyzing
               </p>
             </div>
-            <div className="relative aspect-[4/3] min-h-[460px] overflow-hidden bg-[#111614]">
+            <div className="relative mx-auto aspect-[9/16] w-full max-w-[560px] overflow-hidden bg-[#111614]">
               <Image
                 alt="Camera sample of open trash bins in an indoor service area"
                 className="h-full w-full object-cover opacity-95"
                 fill
                 priority
-                sizes="(min-width: 1280px) 54vw, 100vw"
-                src="/ai-camera-sample.svg"
+                sizes="(min-width: 1280px) 560px, 100vw"
+                src="/trash-bin-camera-sample.jpg"
               />
-              <div className="absolute left-[10%] top-[50%] h-[35%] w-[38%] border-2 border-[#d33f49] bg-[#d33f49]/10">
+              <div className="absolute left-[3%] top-[38%] h-[36%] w-[43%] border-2 border-[#d33f49] bg-[#d33f49]/10">
                 <span className="absolute left-2 top-2 rounded-sm bg-[#d33f49] px-2 py-1 text-xs font-semibold text-white">
                   Full bin 94%
                 </span>
               </div>
-              <div className="absolute left-[47%] top-[33%] h-[27%] w-[32%] border-2 border-[#1f8a5b] bg-[#1f8a5b]/10">
-                <span className="absolute left-2 top-2 rounded-sm bg-[#1f8a5b] px-2 py-1 text-xs font-semibold text-white">
-                  Clear bin 91%
+              <div className="absolute left-[38%] top-[27%] h-[33%] w-[45%] border-2 border-[#f0b429] bg-[#f0b429]/10">
+                <span className="absolute left-2 top-2 rounded-sm bg-[#f0b429] px-2 py-1 text-xs font-semibold text-[#111614]">
+                  Watch bin 91%
                 </span>
               </div>
-              <div className="absolute left-[65%] top-[70%] h-[17%] w-[20%] border-2 border-[#7b5cff] bg-[#7b5cff]/10">
-                <span className="absolute left-2 top-2 rounded-sm bg-[#7b5cff] px-2 py-1 text-xs font-semibold text-white">
-                  Cat 96%
+              <div className="absolute bottom-[9%] right-[5%] rounded-md border border-[#7b5cff] bg-[#101412]/90 px-3 py-2 text-white">
+                <span className="block text-xs font-semibold text-[#ddd5ff]">
+                  Cat scan clear 97%
+                </span>
+                <span className="mt-1 block text-[11px] text-[#c9d6ce]">
+                  No animal detected
                 </span>
               </div>
               <div className="absolute bottom-4 left-4 right-4 grid gap-3 rounded-lg border border-white/15 bg-[#101412]/85 p-4 text-white backdrop-blur sm:grid-cols-3">
@@ -269,7 +285,7 @@ export default function AiDetectionPage() {
                 </div>
                 <div>
                   <p className="text-sm text-[#b8c7be]">Animal safety</p>
-                  <p className="mt-1 text-2xl font-semibold text-[#ddd5ff]">Hold</p>
+                  <p className="mt-1 text-2xl font-semibold text-[#c7f2d9]">Clear</p>
                 </div>
               </div>
             </div>
@@ -281,7 +297,7 @@ export default function AiDetectionPage() {
               <h2 className="mt-3 text-2xl font-semibold">Collect CAM-01 first.</h2>
               <p className="mt-3 leading-7 text-[#445048]">
                 Dispatch one cleaner to the kitchen service area within 35 minutes.
-                Delay the storage corridor stop until the cat leaves the pickup zone.
+                The current frame is clear of cats, so collection can proceed safely.
               </p>
             </section>
 
@@ -350,8 +366,8 @@ export default function AiDetectionPage() {
                     </span>
                   </div>
                   <div className="mt-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#5f6b63]">Fill estimate</span>
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-[#5f6b63]">{getMeasureLabel(item.status)}</span>
                       <span className="font-semibold">{item.fillLevel}%</span>
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-sm bg-[#e6ece7]">
