@@ -1,5 +1,15 @@
 # Trash Monitor Web
 
+## AI detection pitch demo
+
+The current product pitch route is:
+
+- AI camera demo: [https://trash-monitor-web.vercel.app/ai-detection](https://trash-monitor-web.vercel.app/ai-detection)
+
+This page uses fake, self-contained data to present a camera-based waste monitoring concept. It shows bin fullness predictions, cat detection, confidence scores, collection priority, route suggestions, event history, and operational statistics without requiring ESP hardware, sensors, Supabase updates, or webhooks.
+
+The original RF/ESP dashboard and webhook code still exists in the repository as legacy implementation context.
+
 Hosted dashboard and webhook backend for the RF-based trash bin monitoring system.
 
 This app is designed to work with the ESP32 firmware in the companion `esp32_relay` project. Each trash bin has:
